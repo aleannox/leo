@@ -1,0 +1,5 @@
+time_scale: 5 # seconds between actions
+chain_min: -1000  # 1000 ~ 90 degrees
+chain_max: 1000
+chain_speed: 5000
+chain_time_per_1000: 12.25  # measured value in seconds, assuming `chain_speed`

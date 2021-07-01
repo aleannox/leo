@@ -1,9 +1,14 @@
 import json
 import logging
+import pathlib
+import random
 import socket
 import time
 
 import requests
+import ruamel.yaml
+
+yaml = ruamel.yaml.YAML()
 
 
 class TankController:
@@ -18,6 +23,48 @@ class TankController:
     def __init__(self):
         TankController._wait_for_api()
         TankController._connect_api()
+        self._init_chains()
+        self.config = yaml.load(pathlib.Path('config.yaml'))
+        logging.info(f"Using config: {self.config}")
+        
+    def run_random(self):
+        while True:
+            chain_target = random.randint(
+                self.config['chain_min'], self.config['chain_max']
+            )
+            duration = self.move_chains(chain_target, self.config['chain_speed'])
+            time.sleep(duration + self.config['time_scale'])
+            
+    def move_chains(self, position, speed):
+        logging.info(f"Moving chains to E{position} with F{speed}.")
+        TankController._send_gcode(f'G0 E{position} F{speed}')
+        duration = abs(position - self.chain_position) / 1000 * self.config['chain_time_per_1000']
+        logging.info(f"Expected move duration {duration:.01f}s")
+        self.chain_position = position
+        return duration
+        
+    def _init_chains(self):
+        logging.info("Initializing chains.")
+        TankController._send_gcode(
+            [
+                'M163 S0 P0.5',
+                'M163 S1 P0.5',
+                'M164 S3',
+                'T3',
+                'G92 E0',
+            ]
+        )
+        self.chain_position = 0
+        
+    @staticmethod
+    def _send_gcode(commands):
+        if isinstance(commands, str):
+            commands = [commands]
+        logging.info(f"Sending GCODE commands: {commands}")
+        result = TankController._api_post(
+            'printer/command', json_={'commands': commands}
+        )
+        assert result.status_code == 204, f"Sent wrong GCODE command {commands}."
         
     @staticmethod
     def _wait_for_api():
@@ -32,20 +79,20 @@ class TankController:
             
     @staticmethod
     def _connect_api():
-        logging.info("Connecting to octoprint API.")
-        connection_result = TankController._api_post(
+        logging.info("Connecting octoprint API to printer.")
+        result = TankController._api_post(
             'connection',
             json_={
-                "command": "connect",
-                "port": "/dev/ttyACM0",
-                "baudrate": 250000,
-                "printerProfile": "_default",
-                "save": True,
-                "autoconnect": True,
+                'command': 'connect',
+                'port': '/dev/ttyACM0',
+                'baudrate': 250000,
+                'printerProfile': '_default',
+                'save': True,
+                'autoconnect': True,
             }
         )
-        assert connection_result.status_code == 204, "Connection error."
-        logging.info("Connected to octoprint API.")
+        assert result.status_code == 204, "Connection error."
+        logging.info("Connected octoprint API to printer.")
         
     @staticmethod
     def _api_get(url):
@@ -62,7 +109,4 @@ class TankController:
             headers=TankController.API_HEADER,
             json=json_,
         )
-        try:
-            return result
-        except json.JSONDecodeError:
-            pass
+        return result
