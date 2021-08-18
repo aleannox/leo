@@ -4,10 +4,11 @@ import controller
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     t = controller.TankController()
-    t.run_random()
+    # t.run_random()
+    t.run_look_at_person()
 
 
 if __name__ == '__main__':

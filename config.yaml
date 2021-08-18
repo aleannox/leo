@@ -1,6 +1,6 @@
 time_scale: 5 # seconds between actions
-chain_min: -500  # 1000 ~ 90 degrees
-chain_max: 500
+chain_min: -900  # 1000 ~ 90 degrees
+chain_max: 900
 chain_speed: 5000
 chain_time_per_1000: 12.25  # measured value in seconds, assuming `chain_speed`
 gun_min: 0
@@ -8,3 +8,4 @@ gun_max: 2000
 gun_speed: 900
 gun_max_per_move: 50  # ~3s max duration
 gun_time_per_1000: 67  # measured value in seconds, assuming `gun_speed`
+wait_for_camera_time: 30  # time to wait until we make a random move because camera offline
