@@ -46,12 +46,14 @@ class TankController:
                 # we use a linear scale such that
                 # person_x = +-0.5 -> +-45 degrees -> +-500
                 # recall that positive = ccw for chains, need sign flip
-                chain_target = max(
-                    self.config['chain_min'],
-                    min(
-                        self.config['chain_max'],
-                        self.chain_position - person_x * 1000,
-                    ),
+                chain_target = round(
+                    max(
+                        self.config['chain_min'],
+                        min(
+                            self.config['chain_max'],
+                            self.chain_position - person_x * 1000,
+                        ),
+                    )
                 )
                 self.move_chains(chain_target, self.config['chain_speed'])
                 self.move_gun()

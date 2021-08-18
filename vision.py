@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL
 import pyrealsense2 as rs
-import torch
+
+
+VISION_MEMORY_PATH = pathlib.Path(__file__).parent / 'memory' / 'vision'
 
 
 class PersonDetector:
@@ -22,7 +24,7 @@ class PersonDetector:
         self.camera_last_seen = 0
         
     def get_largest_person_relative_x(self):
-        image, outputs = self._run_prediction()
+        _, outputs = self._run_prediction()
         if outputs is not None:
             return PersonDetector.extract_largest_person_relative_x(outputs)
 
@@ -77,7 +79,7 @@ class PersonDetector:
         plt.margins(0,0)
         plt.gca().xaxis.set_major_locator(plt.NullLocator())
         plt.gca().yaxis.set_major_locator(plt.NullLocator())
-        filename = pathlib.Path(__file__).parent / (
+        filename = VISION_MEMORY_PATH / (
             datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.png'
         )
         logger.info(f"Saving detection at {filename}")
