@@ -1,4 +1,3 @@
-import json
 import pathlib
 import random
 import socket
@@ -23,7 +22,7 @@ class TankController:
         URL_BASE = 'http://localhost/api/'
     else:
         URL_BASE = 'http://octopi.local/api/'
-    
+
     def __init__(self, dry_run):
         self.dry_run = dry_run
         if self.dry_run:
@@ -38,13 +37,13 @@ class TankController:
         logger.info(f"Using config: {self.config}")
         self.person_detector = vision.PersonDetector(self.config)
         self.speech = speech.Speech()
+        self.last_spoken = 0
 
     def run_look_at_person(self):
         while True:
             person_x = self.person_detector.get_largest_person_relative_x()
             self.move_gun()
             if person_x:
-                self.speech.say_phrase('human')
                 # 1000 corresponds to 90 degrees
                 # we use a linear scale such that
                 # person_x = +-0.5 -> +-45 degrees -> +-500
@@ -59,6 +58,14 @@ class TankController:
                     )
                 )
                 self.move_chains(chain_target, self.config['chain_speed'])
+                if (
+                    time.time() - self.last_spoken
+                    > self.config['speak_interval']
+                ):
+                    self.last_spoken = time.time()
+                    self.speech.say_phrase('human')
+                else:
+                    logger.info("Skip speaking - too frequent.")
                 self.move_gun()
             elif (
                 time.time()
@@ -67,7 +74,7 @@ class TankController:
             ):
                 self._random_move()
                 time.sleep(self.config['time_scale'])
-        
+
     def run_random(self):
         while True:
             self._random_move()
@@ -80,17 +87,21 @@ class TankController:
         )
         self.move_chains(chain_target, self.config['chain_speed'])
         self.move_gun()
-            
+
     def move_chains(self, position, speed):
         logger.info(f"Moving chains to E{position} with F{speed}.")
         self._send_gcode(f'G0 E{position} F{speed}')
         # Expected duration for this move, we sleep for this duration.
-        # Currently we do not know of any way to query whether the printer is actually moving.
-        duration = abs(position - self.chain_position) / 1000 * self.config['chain_time_per_1000']
+        # Currently we do not know of any way to query whether the printer
+        # is actually moving.
+        duration = (
+            abs(position - self.chain_position)
+            / 1000 * self.config['chain_time_per_1000']
+        )
         logger.info(f"Expected move duration {duration:.01f}s")
         time.sleep(duration)
         self.chain_position = position
-    
+
     def move_gun(self):
         return  # Skip for now.
         # Gun movement is so slow that it is barely visible.
@@ -116,7 +127,7 @@ class TankController:
         logger.info(f"Expected move duration {duration:.01f}s")
         time.sleep(duration)
         self.gun_position = target
-        
+
     def _init_gun(self):
         # TODO: homing, currently homing sensor is not at 0 but max ~= 2000
         logger.info("Initializing gun.")
@@ -127,7 +138,7 @@ class TankController:
         # just disable, hopefully preventing thermal runaway
         logger.info("Initializing turrent.")
         self._send_gcode('M18 Z')
-        
+
     def _init_chains(self):
         logger.info("Initializing chains.")
         self._send_gcode(
@@ -151,8 +162,10 @@ class TankController:
             result = TankController._api_post(
                 'printer/command', json_={'commands': commands}
             )
-            assert result.status_code == 204, f"Sent wrong GCODE command {commands}."
-        
+            assert result.status_code == 204, (
+                f"Sent wrong GCODE command {commands}."
+            )
+
     @staticmethod
     def _wait_for_api():
         logger.info("Waiting for octoprint API to become alive.")
@@ -163,7 +176,7 @@ class TankController:
             except (socket.gaierror, requests.ConnectionError):
                 pass
             time.sleep(10)
-            
+
     @staticmethod
     def _connect_api():
         logger.info("Connecting octoprint API to printer.")
@@ -180,7 +193,7 @@ class TankController:
         )
         assert result.status_code == 204, "Connection error."
         logger.info("Connected octoprint API to printer.")
-        
+
     @staticmethod
     def _api_get(url):
         result = requests.get(

@@ -3,3 +3,4 @@ __pycache__
 *.jpg
 .ipynb_checkpoints
 *.log
+quantized_models
