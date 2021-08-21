@@ -10,7 +10,6 @@ from detectron2.data import MetadataCatalog
 from loguru import logger
 import matplotlib.pyplot as plt
 import numpy as np
-import PIL
 import pyrealsense2 as rs
 
 
@@ -19,7 +18,10 @@ VISION_MEMORY_PATH = pathlib.Path(__file__).parent / 'memory' / 'vision'
 
 class PersonDetector:
     def __init__(self):
-        model = model_zoo.get('faster_rcnn_fbnetv3a_dsmask_C4.yaml', trained=True)
+        self.recorder = RealSenseImageRecorder()
+        model = model_zoo.get(
+            'faster_rcnn_fbnetv3a_dsmask_C4.yaml', trained=True
+        )
         self.predictor = DemoPredictor(model)
         self.camera_last_seen = 0
         
@@ -29,7 +31,7 @@ class PersonDetector:
             return PersonDetector.extract_largest_person_relative_x(outputs)
 
     def _run_prediction(self):
-        image = record_image()
+        image = self.recorder.record_image()
         if image is not None:
             self.camera_last_seen = time.time()
             logger.info("Detecting persons.")
@@ -86,36 +88,40 @@ class PersonDetector:
         plt.savefig(str(filename), bbox_inches='tight', pad_inches=0)
 
 
-def record_image(depth_share=0):
-    logger.info("Recording image.")
-    try:
-        pipe = rs.pipeline()
-        profile = pipe.start()
-        color_sensor = profile.get_device().first_color_sensor()
-        color_sensor.set_option(rs.option.gain, 99)
-        frames = pipe.wait_for_frames()
-        for f in frames:
-            if f.profile.format() == rs.format.rgb8:
-                image_color = realsense_to_numpy(f.data)
-            elif f.profile.format() == rs.format.z16:
-                image_depth = realsense_to_numpy(f.data)
-        return (
-            image_color * (1 - depth_share)
-            + image_depth * depth_share
-        ).round().astype('uint8')
-    except RuntimeError as e:
-        logger.error(f"Could not record image: {e}")
-
-
-def realsense_to_numpy(rs_buffer):
-    "Convert pyrealsense2.pyrealsense2.BufData to numpy array"
-    buffer = io.BytesIO()
-    plt.figure()
-    plt.imshow(rs_buffer)  # TODO: understand why plt.imshow works out of the box
-    plt.gca().set_axis_off()
-    plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
-    plt.margins(0,0)
-    plt.gca().xaxis.set_major_locator(plt.NullLocator())
-    plt.gca().yaxis.set_major_locator(plt.NullLocator())
-    plt.savefig(buffer, format='png', bbox_inches='tight', pad_inches=0)
-    return np.array(PIL.Image.open(buffer))[:, :, :3]
+class RealSenseImageRecorder:
+    def __init__(self):
+        self._init_pipeline()
+        
+    def _init_pipeline(self):
+        logger.info("Initializing recording pipeline.")
+        self.pipeline = None
+        try:
+            self.pipeline = rs.pipeline()
+            profile = self.pipeline.start()
+            color_sensor = profile.get_device().first_color_sensor()
+            color_sensor.set_option(rs.option.gain, 99)
+        except RuntimeError as e:
+            logger.error(f"Could not initialize recording pipeline: {e}")
+        
+    def record_image(self, depth_share=0):
+        logger.info("Recording image.")
+        if self.pipeline is None:
+            self._init_pipeline()
+            if self.pipeline is None:
+                return
+        try:
+            frames = self.pipeline.wait_for_frames()
+            image_color = np.asarray(frames.get_color_frame().data)
+            if depth_share:
+                image_depth = np.asarray(frames.get_depth_frame().data)
+            if depth_share:
+                return (
+                    image_color * (1 - depth_share)
+                    + image_depth * depth_share
+                ).round().astype('uint8')
+            else:
+                return image_color  # already 'uint8'
+        except RuntimeError as e:
+            logger.error(f"Could not record image: {e}")
+            # Reset pipeline, we will try to restart it on next call.
+            self.pipeline = None

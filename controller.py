@@ -8,6 +8,7 @@ from loguru import logger
 import requests
 import ruamel.yaml
 
+import speech
 import vision
 
 yaml = ruamel.yaml.YAML()
@@ -36,12 +37,14 @@ class TankController:
         self.config = yaml.load(pathlib.Path(__file__).parent / 'config.yaml')
         logger.info(f"Using config: {self.config}")
         self.person_detector = vision.PersonDetector()
+        self.speech = speech.Speech()
 
     def run_look_at_person(self):
         while True:
             person_x = self.person_detector.get_largest_person_relative_x()
             self.move_gun()
             if person_x:
+                self.speech.say_phrase('human')
                 # 1000 corresponds to 90 degrees
                 # we use a linear scale such that
                 # person_x = +-0.5 -> +-45 degrees -> +-500
