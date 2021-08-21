@@ -36,7 +36,7 @@ class TankController:
         self._init_chains()
         self.config = yaml.load(pathlib.Path(__file__).parent / 'config.yaml')
         logger.info(f"Using config: {self.config}")
-        self.person_detector = vision.PersonDetector()
+        self.person_detector = vision.PersonDetector(self.config)
         self.speech = speech.Speech()
 
     def run_look_at_person(self):
