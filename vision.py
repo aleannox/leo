@@ -170,7 +170,6 @@ class RealSenseImageRecorder:
 
     def _init_pipeline(self):
         logger.info("Initializing recording pipeline.")
-        self.pipeline = None
         try:
             self.pipeline = rs.pipeline()
             profile = self.pipeline.start()
@@ -178,6 +177,8 @@ class RealSenseImageRecorder:
             color_sensor.set_option(rs.option.gain, 99)
         except RuntimeError as e:
             logger.error(f"Could not initialize recording pipeline: {e}")
+            # Reset pipeline, we will try to restart it on next call.
+            self.pipeline = None
 
     def record_image(self, depth_share=0):
         logger.info("Recording image.")

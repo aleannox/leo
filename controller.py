@@ -63,7 +63,7 @@ class TankController:
                     > self.config['speak_interval']
                 ):
                     self.last_spoken = time.time()
-                    self.speech.say_phrase('human')
+                    self.speech.say_phrase('person_detected')
                 else:
                     logger.info("Skip speaking - too frequent.")
                 self.move_gun()
