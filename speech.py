@@ -7,10 +7,10 @@ each time the phrase is used.
 
 import pathlib
 import random
+import time
 
 from loguru import logger
-import pydub
-import pydub.playback
+import simpleaudio
 import pyttsx3
 
 
@@ -22,6 +22,8 @@ VOLUME = 1
 # For prerecorded phrases.
 PHRASES_PATH = pathlib.Path(__file__).parent / 'phrases'
 PHRASES_FILE_PATTERN = '*.[wWmMaA][aApPiI][vV3fF]'  # .wav, .mp3, .aif
+
+HEARTBEAT_INTERVAL = 30  # (seconds) Play silence to prevent speaker poweroff.
 
 
 class Speech:
@@ -39,15 +41,21 @@ class Speech:
         logger.info(
             f'I have found the following prerecorded phrases: {self.phrases}'
         )
+        self.last_heartbeat = 0
 
     def say_phrase(self, phrase):
         file_to_play = random.sample(self.phrases[phrase], 1)[0]
         logger.info(f"Playing: {file_to_play}")
-        pydub.playback.play(
-            pydub.AudioSegment.from_wav(file_to_play)
-        )
+        wave_obj = simpleaudio.WaveObject.from_wave_file(str(file_to_play))
+        play_obj = wave_obj.play()
+        play_obj.wait_done()
 
     def say(self, text):
         logger.info(f"Saying: {text}")
         self.engine.say(text)
         self.engine.runAndWait()
+
+    def maybe_heartbeat(self):
+        if time.time() - self.last_heartbeat > HEARTBEAT_INTERVAL:
+            self.say_phrase('heartbeat')
+            self.last_heartbeat = time.time()

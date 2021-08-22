@@ -64,8 +64,6 @@ class TankController:
                 ):
                     self.last_spoken = time.time()
                     self.speech.say_phrase('person_detected')
-                else:
-                    logger.info("Skip speaking - too frequent.")
                 self.move_gun()
             elif (
                 time.time()
@@ -74,6 +72,9 @@ class TankController:
             ):
                 self._random_move()
                 time.sleep(self.config['time_scale'])
+            else:
+                # Say something silently to prevent speaker auto power off
+                self.speech.maybe_heartbeat()
 
     def run_random(self):
         while True:

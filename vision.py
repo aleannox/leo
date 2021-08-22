@@ -59,8 +59,6 @@ class PersonDetector:
             if time.time() - self.image_last_saved > self.save_image_interval:
                 self.image_last_saved = time.time()
                 PersonDetector.save_detection(image, outputs)
-            else:
-                logger.info("Skip saving image - too frequent.")
             return image, outputs
         else:
             return None, None
@@ -122,6 +120,7 @@ class PersonDetector:
         )
         logger.info(f"Saving detection at {filename}")
         plt.savefig(str(filename), bbox_inches='tight', pad_inches=0)
+        plt.close()
 
     @staticmethod
     def _get_quantized_model(model_name):
