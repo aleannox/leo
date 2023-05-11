@@ -11,7 +11,7 @@ import speech
 import vision
 
 yaml = ruamel.yaml.YAML()
-logger.add(pathlib.Path(__file__).parent / 'run.log', rotation='100 MB')
+logger.add(pathlib.Path(__file__).parent / 'run.log', rotation='10 MB')
 
 
 class TankController:

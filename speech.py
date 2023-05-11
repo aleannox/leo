@@ -8,6 +8,7 @@ each time the phrase is used.
 import pathlib
 import random
 import time
+import traceback
 
 from loguru import logger
 import simpleaudio
@@ -46,9 +47,12 @@ class Speech:
     def say_phrase(self, phrase):
         file_to_play = random.sample(self.phrases[phrase], 1)[0]
         logger.info(f"Playing: {file_to_play}")
-        wave_obj = simpleaudio.WaveObject.from_wave_file(str(file_to_play))
-        play_obj = wave_obj.play()
-        play_obj.wait_done()
+        try:
+            wave_obj = simpleaudio.WaveObject.from_wave_file(str(file_to_play))
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
+        except Exception:
+            logger.error(traceback.format_exc())
 
     def say(self, text):
         logger.info(f"Saying: {text}")

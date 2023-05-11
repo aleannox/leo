@@ -10,7 +10,7 @@ gun_max_per_move: 50  # ~3s max duration
 gun_time_per_1000: 67  # measured value in seconds, assuming `gun_speed`
 wait_for_camera_time: 30  # time to wait until we make a random move because camera offline
 
-speak_interval: 15  # (seconds) Do not speak more often that this.
+speak_interval: 99999  # (seconds) Do not speak more often that this.
 
 detectron_model: faster_rcnn_fbnetv3a_dsmask_C4.yaml
 detectron_person_class: 0  # COCO 2017 used in model
@@ -19,4 +19,4 @@ detectron_min_size: 112
 detectron_max_size: 160
 detectron_confidence_threshold: 0.5  # Ignore detections with lower confidence.
 detectron_use_quantized_model: true
-detectron_save_image_interval: 10  # (seconds) Do not save detections more often that this.
+detectron_save_image_interval: 99999  # (seconds) Do not save detections more often that this.
